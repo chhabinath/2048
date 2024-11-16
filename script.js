@@ -9,8 +9,10 @@ let grid = [
 ];
 let score = 0;
 
-// Initialize game
+// Initialize the game
 function initGame() {
+  grid = grid.map(row => row.map(() => 0));
+  score = 0;
   addRandomTile();
   addRandomTile();
   drawGrid();
@@ -32,8 +34,8 @@ function addRandomTile() {
 
 function drawGrid() {
   gridContainer.innerHTML = "";
-  grid.forEach((row) => {
-    row.forEach((value) => {
+  grid.forEach(row => {
+    row.forEach(value => {
       const tile = document.createElement("div");
       tile.className = "tile";
       tile.dataset.value = value;
@@ -41,106 +43,85 @@ function drawGrid() {
       gridContainer.appendChild(tile);
     });
   });
-
   scoreDisplay.textContent = `Score: ${score}`;
 }
 
-function slide(row) {
-  const newRow = row.filter((val) => val !== 0); // Remove all zeros
-  while (newRow.length < 4) newRow.push(0); // Add zeros to the end
+function slideAndCombine(row) {
+  let newRow = row.filter(value => value !== 0);
+  for (let i = 0; i < newRow.length - 1; i++) {
+    if (newRow[i] === newRow[i + 1]) {
+      newRow[i] *= 2;
+      score += newRow[i];
+      newRow[i + 1] = 0;
+    }
+  }
+  newRow = newRow.filter(value => value !== 0);
+  while (newRow.length < 4) newRow.push(0);
   return newRow;
 }
 
-function combine(row) {
-  for (let i = 0; i < row.length - 1; i++) {
-    if (row[i] !== 0 && row[i] === row[i + 1]) {
-      row[i] *= 2;
-      row[i + 1] = 0;
-      score += row[i];
-    }
-  }
-  return row;
-}
-
-function slideAndCombine(row) {
-  row = slide(row);
-  row = combine(row);
-  return slide(row);
-}
-
 function rotateGrid(grid) {
-  return grid[0].map((_, colIndex) => grid.map((row) => row[colIndex]).reverse());
+  return grid[0].map((_, colIndex) => grid.map(row => row[colIndex]).reverse());
 }
 
-function handleMove(direction) {
-  let moved = false;
-
+function move(direction) {
+  let rotated = false;
   if (direction === "up" || direction === "down") {
     grid = rotateGrid(grid);
+    rotated = true;
+  }
+  if (direction === "down" || direction === "right") {
+    grid = grid.map(row => row.reverse());
   }
 
-  grid = grid.map((row) => {
-    const originalRow = [...row];
-    const newRow = direction === "right" || direction === "down" ? slideAndCombine(row.reverse()).reverse() : slideAndCombine(row);
-    if (JSON.stringify(originalRow) !== JSON.stringify(newRow)) moved = true;
-    return newRow;
-  });
-
-  if (direction === "up" || direction === "down") {
+  const oldGrid = JSON.stringify(grid);
+  grid = grid.map(slideAndCombine);
+  if (direction === "down" || direction === "right") {
+    grid = grid.map(row => row.reverse());
+  }
+  if (rotated) {
     grid = rotateGrid(grid).reverse();
   }
 
-  if (moved) {
+  if (JSON.stringify(grid) !== oldGrid) {
     addRandomTile();
-    drawGrid();
   }
-
+  drawGrid();
   checkGameOver();
 }
 
 function checkGameOver() {
-  const moves = ["left", "right", "up", "down"];
-  const isMovable = moves.some((direction) => {
+  if (grid.flat().includes(0)) return;
+
+  const directions = ["left", "right", "up", "down"];
+  for (const direction of directions) {
     const tempGrid = JSON.parse(JSON.stringify(grid));
-    handleMove(direction);
-    const hasMoved = JSON.stringify(grid) !== JSON.stringify(tempGrid);
-    grid = tempGrid; // Revert grid
-    return hasMoved;
-  });
-
-  if (!isMovable) {
-    alert(`Game Over! Final Score: ${score}`);
-    resetGame();
+    move(direction);
+    if (JSON.stringify(grid) !== JSON.stringify(tempGrid)) {
+      grid = tempGrid; // Restore grid
+      return;
+    }
   }
-}
-
-function resetGame() {
-  grid = [
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-  ];
-  score = 0;
+  alert(`Game Over! Your final score is ${score}`);
   initGame();
 }
 
-// Touch support for swipe gestures
+// Touch events for mobile
 let touchStartX = 0, touchStartY = 0;
-document.addEventListener("touchstart", (e) => {
+document.addEventListener("touchstart", e => {
   touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
 });
-document.addEventListener("touchend", (e) => {
+document.addEventListener("touchend", e => {
   const deltaX = e.changedTouches[0].clientX - touchStartX;
   const deltaY = e.changedTouches[0].clientY - touchStartY;
 
   if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    handleMove(deltaX > 0 ? "right" : "left");
+    move(deltaX > 0 ? "right" : "left");
   } else {
-    handleMove(deltaY > 0 ? "down" : "up");
+    move(deltaY > 0 ? "down" : "up");
   }
 });
 
-// Initialize game
+// Initialize game on load
 initGame();
