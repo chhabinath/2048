@@ -7,6 +7,7 @@ body {
   justify-content: center;
   align-items: center;
   height: 100vh;
+  flex-direction: column;
 }
 
 #game-container {
@@ -56,3 +57,13 @@ body {
 .tile[data-value="512"] { background-color: #edc850; color: #f9f6f2; }
 .tile[data-value="1024"] { background-color: #edc53f; color: #f9f6f2; }
 .tile[data-value="2048"] { background-color: #edc22e; color: #f9f6f2; }
+
+#game-over {
+  font-size: 24px;
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 10px 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+  cursor: pointer;
+}
