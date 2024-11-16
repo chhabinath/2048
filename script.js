@@ -1,18 +1,17 @@
 const gridContainer = document.getElementById("grid");
 const scoreDisplay = document.getElementById("score");
+const gameOverDisplay = document.getElementById("game-over");
 
-let grid = [
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-];
+let grid = [];
 let score = 0;
 
 // Initialize the game
 function initGame() {
-  grid = grid.map(row => row.map(() => 0));
+  grid = Array(4)
+    .fill(null)
+    .map(() => Array(4).fill(0));
   score = 0;
+  gameOverDisplay.style.display = "none";
   addRandomTile();
   addRandomTile();
   drawGrid();
@@ -46,18 +45,21 @@ function drawGrid() {
   scoreDisplay.textContent = `Score: ${score}`;
 }
 
-function slideAndCombine(row) {
-  let newRow = row.filter(value => value !== 0);
-  for (let i = 0; i < newRow.length - 1; i++) {
-    if (newRow[i] === newRow[i + 1]) {
-      newRow[i] *= 2;
-      score += newRow[i];
-      newRow[i + 1] = 0;
+function slide(row) {
+  const nonZeroTiles = row.filter(val => val !== 0);
+  const mergedRow = [];
+  while (nonZeroTiles.length > 0) {
+    if (nonZeroTiles.length > 1 && nonZeroTiles[0] === nonZeroTiles[1]) {
+      mergedRow.push(nonZeroTiles[0] * 2);
+      score += nonZeroTiles[0] * 2;
+      nonZeroTiles.shift();
+    } else {
+      mergedRow.push(nonZeroTiles[0]);
     }
+    nonZeroTiles.shift();
   }
-  newRow = newRow.filter(value => value !== 0);
-  while (newRow.length < 4) newRow.push(0);
-  return newRow;
+  while (mergedRow.length < 4) mergedRow.push(0);
+  return mergedRow;
 }
 
 function rotateGrid(grid) {
@@ -75,7 +77,7 @@ function move(direction) {
   }
 
   const oldGrid = JSON.stringify(grid);
-  grid = grid.map(slideAndCombine);
+  grid = grid.map(slide);
   if (direction === "down" || direction === "right") {
     grid = grid.map(row => row.reverse());
   }
@@ -102,26 +104,29 @@ function checkGameOver() {
       return;
     }
   }
-  alert(`Game Over! Your final score is ${score}`);
-  initGame();
+  gameOverDisplay.style.display = "block";
 }
 
-// Touch events for mobile
-let touchStartX = 0, touchStartY = 0;
+// Swipe functionality for touch
+let startX = 0,
+  startY = 0;
 document.addEventListener("touchstart", e => {
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
 });
 document.addEventListener("touchend", e => {
-  const deltaX = e.changedTouches[0].clientX - touchStartX;
-  const deltaY = e.changedTouches[0].clientY - touchStartY;
+  const dx = e.changedTouches[0].clientX - startX;
+  const dy = e.changedTouches[0].clientY - startY;
 
-  if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    move(deltaX > 0 ? "right" : "left");
+  if (Math.abs(dx) > Math.abs(dy)) {
+    move(dx > 0 ? "right" : "left");
   } else {
-    move(deltaY > 0 ? "down" : "up");
+    move(dy > 0 ? "down" : "up");
   }
 });
 
-// Initialize game on load
+// Restart game on game-over tap
+gameOverDisplay.addEventListener("click", initGame);
+
+// Initialize the game
 initGame();
